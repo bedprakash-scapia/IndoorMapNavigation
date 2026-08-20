@@ -1,0 +1,43 @@
+{
+  "_note": [
+    "Per-floor config. Escalator positions were read off the sheets once, by eye.",
+    "Three attempts at detecting them automatically all failed: the glyphs share a",
+    "colour with the jewellery category fill and with fire-exit signs, and routing a",
+    "shopper through a fire stairwell is a real failure, so a fragile classifier was",
+    "not worth shipping. There are only a handful per floor, and they are labelled",
+    "by atrium on the sheet.",
+    "Shafts are linked ACROSS floors by atrium name, not by pixel position: the",
+    "sheets are drawn in the same frame but are not a clean translation of one",
+    "another, so the same atrium sits ~110 px apart between levels."
+  ],
+  "floors": [
+    {
+      "id": "G",
+      "name": "Ground",
+      "order": 0,
+      "src": "mall_4.json",
+      "names": "names_4.json",
+      "escalators": [
+        { "atrium": "Atrium 2", "xy": [585, 995] },
+        { "atrium": "Atrium 3", "xy": [745, 1072] },
+        { "atrium": "Atrium 5", "xy": [1160, 1063] },
+        { "atrium": "Atrium 6", "xy": [1285, 1107] },
+        { "atrium": "Atrium 8", "xy": [1670, 937] },
+        { "atrium": "Atrium 9", "xy": [1795, 580] }
+      ]
+    },
+    {
+      "id": "1",
+      "name": "First",
+      "order": 1,
+      "src": "mall_3.json",
+      "names": "names_3.json",
+      "escalators": [
+        { "atrium": "Atrium 2", "xy": [587, 1105] },
+        { "atrium": "Atrium 5", "xy": [1135, 1190] },
+        { "atrium": "Atrium 8", "xy": [1660, 1080] },
+        { "atrium": "Atrium 9", "xy": [1760, 855] }
+      ]
+    }
+  ]
+}

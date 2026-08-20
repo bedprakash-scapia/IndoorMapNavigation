@@ -12,3 +12,8 @@ venv/
 web/venue_web.json
 web/index.html
 web/navigate.html
+
+# generated
+web/mall/index.html
+venues/mall/mall_demo.json
+images/
