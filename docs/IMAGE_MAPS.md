@@ -100,6 +100,11 @@ consistent (one atrium differs by 275 px). Shafts are therefore linked by
   case 9, where a path doubles back through an area whose shops are all named.
 - **Small units merge** where the dividing line is thin; roughly 73 of ~80 shops
   are captured on the ground floor.
+- **A shop name is not a unique key.** Three names repeat across the three floors
+  and all three are legitimate: a concierge desk on each floor, two Vero Moda
+  stores, and a cinema that spans levels. Look shops up by (name, floor) - a
+  name-only lookup silently returned the wrong floor's PVR and made a two-
+  escalator route look like a one-escalator route.
 - **Source images are not committed** - they are the venue's material. The
   extracted JSON is, so everything downstream runs offline.
 - This does **not** yet go through `indoor/`. The narrator in `web/mall/app.js`

@@ -212,7 +212,9 @@ const icon = s => s.t === 'start' ? IC.start : s.t === 'end' ? IC.end : s.t === 
 
 /* ---------- UI ---------- */
 let cur = { from: null, to: null }, last = null, shown = FLOORS[0].id;
-const byName = n => D.units.find(u => u.n === n);
+/* A name alone is not a key: a concierge desk sits on every floor, Vero Moda has
+   two stores, and the cinema spans levels. Look up by name AND floor. */
+const byName = (n, l) => D.units.find(u => u.n === n && (l === undefined || u.l === l));
 const PAL = D.palette;
 
 function combo(id, key) {
@@ -250,9 +252,11 @@ document.getElementById('swap').addEventListener('click', () => {
   fromI.value = cur.from ? cur.from.n : ''; toI.value = cur.to ? cur.to.n : ''; render();
 });
 
-for (const [a, b] of [["Hamley's", 'Zara Women'], ['HomeCentre', 'Sephora'],
-                      ['Starbucks', 'Costa Coffee'], ['Lifestyle', 'Nykaa Luxe']]) {
-  const A = byName(a), Z = byName(b); if (!A || !Z) continue;
+for (const [a, af, b, bf] of [["Hamley's", 'G', 'Zara Women', '1'],
+                              ['HomeCentre', 'G', 'PVR', '2'],
+                              ['Zara Women', '1', 'Food Court', '2'],
+                              ['Starbucks', '1', 'Costa Coffee', 'G']]) {
+  const A = byName(a, af), Z = byName(b, bf); if (!A || !Z) continue;
   const btn = document.createElement('button');
   btn.className = 'chip'; btn.textContent = a + ' \u2192 ' + b;
   btn.addEventListener('click', () => { cur.from = A; cur.to = Z; fromI.value = a; toI.value = b; render(); });
@@ -341,6 +345,6 @@ document.getElementById('legend').innerHTML = D.categories
   .map(c => `<span><i class="dot" style="background:${PAL[c]}"></i>${esc(c)}</span>`).join('');
 
 drawTabs();
-const A0 = byName("Hamley's"), Z0 = byName('Zara Women');
+const A0 = byName("Hamley's", 'G'), Z0 = byName('Zara Women', '1');
 if (A0 && Z0) { cur.from = A0; cur.to = Z0; fromI.value = A0.n; toI.value = Z0.n; }
 render();
