@@ -48,8 +48,9 @@ python3 -m imagemaps.autoname venues/mall/mall_4.json --out venues/mall/names_4.
 python3 -m imagemaps.build_multi               # merge floors, using floors.json
 ```
 
-Naming needs `ANTHROPIC_API_KEY`. Roughly seven requests per floor (twelve crops
-each); on `claude-opus-5` that is cents per floor. To find out how far to trust
+Naming needs `ANTHROPIC_API_KEY`, and honours `ANTHROPIC_BASE_URL` if you go
+through a gateway. Roughly seven requests per floor (twelve crops each), about a
+minute per floor on `claude-opus-5`. To find out how far to trust
 it, score a run against names you checked by hand:
 
 ```bash
@@ -91,11 +92,30 @@ consistent (one atrium differs by 275 px). Shafts are therefore linked by
 
 - **Scale is assumed.** `BUILDING_WIDTH_M` in `imagemaps/categories.py` sets it.
   Every distance scales off that one guess.
-- **Names are model-read, and worth reviewing.** `autoname.py --compare` scores a
-  fresh run against names you already trust; do that on a floor you have checked
-  before trusting it on one you have not. A wrong name is worse than a blank one -
-  these become the landmarks in the directions - so the prompt is told to return
-  null rather than guess, and low-confidence answers are flagged.
+- **Names are model-read, and worth reviewing.** Measured on the two floors that
+  were also transcribed by hand, 130 named units:
+
+  | | |
+  |---|---|
+  | Exact match | 118 (91%) |
+  | Genuine misreads | 6 (4.6%) |
+  | Cosmetic differences | 6 |
+  | Blanks where a name existed | 0 |
+
+  The cosmetic six are arguments, not errors: `CCD` vs `Cafe Coffee Day` (the map
+  prints CCD), `Body Shop` vs `The Body Shop`, `Marks & Spencer` vs the sheet's
+  `MARKS & SPENCERS`, and `Hunkemöller`, where the model supplied the umlaut the
+  hand transcription had dropped. The six genuine misreads are all small rotated
+  labels next to a similar neighbour - `Payday & Only` for Rayban & Oakley,
+  `Colorbar` for Columbia, `Zara Home` for Kama Ayurveda.
+
+  **The confidence flag earns its keep.** Seven units came back low-confidence and
+  six of them were wrong. Reviewing only the flagged ones catches half the errors
+  for a fraction of the work, which is the review workflow to use.
+
+  A wrong name is worse than a blank one - these become the landmarks in the
+  directions - so the prompt is told to return null rather than guess. It never
+  once left a real shop blank across both floors.
 - **Landmarks repeat on winding routes** - about 0.6 mentions per route, worst
   case 9, where a path doubles back through an area whose shops are all named.
 - **Small units merge** where the dividing line is thin; roughly 73 of ~80 shops
