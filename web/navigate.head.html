@@ -1,0 +1,209 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Navigate · BLR Airport</title>
+
+<style>
+/* Lexend Deca, latin subset, inlined so the page still works with no network.
+   One file serves the whole 300-800 range. */
+@font-face{
+  font-family:'Lexend Deca'; font-style:normal; font-weight:300 800; font-display:swap;
+  src:url(data:font/woff2;base64,__FONT_LEXEND__) format('woff2');
+}
+
+:root{
+  /* ---- Scapia Design System tokens ---- */
+  --navy-400:#1B4271; --navy-500:#11355B; --navy-600:#0B2645;
+  --navy-700:#051D37; --navy-800:#031223; --navy-900:#010E1C;
+  --orange-50:#FEEFE8; --orange-100:#FECBB3; --orange-200:#FEA882;
+  --orange-300:#F14D00; --orange-400:#DA4300; --orange-500:#CE3E00;
+  --ink-300:#CFDBE9; --ink-500:#8C9AAA; --ink-700:#414042;
+  --ink-800:#262B30; --ink-900:#121212;
+  --sky-100:#E0EFFF; --sky-200:#CFDBE9; --sky-300:#BBC9D9;
+  --sky-400:#8ABCF5; --sky-500:#388CEB;
+  --success:#1F9D55; --danger:#CF1322; --warning:#D48806;
+
+  --bg:#F7F8FA; --card:#FFFFFF; --divider:#ECEEF1;
+  --fg:var(--ink-900); --fg-muted:var(--ink-700); --fg-subtle:var(--ink-500);
+  --accent:var(--orange-500); --accent-hover:var(--orange-400);
+
+  --r-sm:6px; --r-md:8px; --r-lg:12px; --r-xl:16px; --r-2xl:24px; --r-pill:9999px;
+  --sh-xs:0 1px 2px 0 rgba(0,35,11,.08);
+  --sh-sm:0 2px 4px 0 rgba(0,35,11,.10);
+  --sh-md:0 4px 12px 0 rgba(0,35,11,.12);
+  --sh-lg:0 8px 24px 0 rgba(0,35,11,.16);
+  --glow:0 8px 32px 0 rgba(206,62,0,.32);
+  --dur:200ms; --dur-fast:120ms; --dur-slow:320ms;
+  --ease:cubic-bezier(.2,.8,.2,1); --ease-io:cubic-bezier(.4,0,.2,1);
+  --font:'Lexend Deca',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+
+  /* Category tints. The Scapia palette is deliberately narrow, so the thirteen
+     POI categories collapse onto six brand hues; the glyph shape still tells
+     them apart. */
+  --food:var(--orange-300);   --retail:var(--orange-300); --lounge:var(--orange-300);
+  --gate:var(--success);      --checkin:var(--success);
+  --security:var(--danger);
+  --baggage:var(--sky-500);   --transport:var(--sky-500);
+  --facility:var(--navy-400); --money:var(--navy-400);
+  --info:var(--navy-400);     --art:var(--navy-400);
+  --place:var(--ink-500);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:var(--navy-900); --card:var(--navy-600); --divider:rgba(255,255,255,.10);
+    --fg:#FFFFFF; --fg-muted:var(--sky-300); --fg-subtle:var(--ink-500);
+    --accent:var(--orange-300); --accent-hover:var(--orange-200);
+    --sh-md:0 4px 12px 0 rgba(0,0,0,.4); --sh-lg:0 8px 24px 0 rgba(0,0,0,.5);
+    /* lifted so they hold contrast on navy */
+    --food:var(--orange-200);   --retail:var(--orange-200); --lounge:var(--orange-200);
+    --gate:#4FD18B;             --checkin:#4FD18B;
+    --security:#FF7A70;
+    --baggage:var(--sky-400);   --transport:var(--sky-400);
+    --facility:var(--sky-300);  --money:var(--sky-300);
+    --info:var(--sky-300);      --art:var(--sky-300);
+    --place:var(--ink-500);
+  }
+  .warn{background:rgba(255,255,255,.04)}
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+body{margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+  font-weight:400; font-size:16px; line-height:22px; -webkit-font-smoothing:antialiased}
+button{font:inherit; color:inherit; border:0; background:none; cursor:pointer}
+b{font-weight:600}
+
+.shell{max-width:620px; margin:0 auto; padding:0 20px env(safe-area-inset-bottom)}
+
+/* ---- header ---- */
+.sticky-top{position:sticky; top:0; z-index:5; background:var(--bg); padding-bottom:12px}
+.top{padding:20px 0 14px; display:flex; align-items:center; gap:12px}
+.back-link{display:inline-flex; align-items:center; gap:4px; text-decoration:none;
+  color:var(--accent); font-size:14px; font-weight:500}
+.route-ttl{font-size:12px; font-weight:500; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--fg-subtle); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+/* The one dark surface, mirroring how the design system uses the navy card:
+   deep gradient with an orange glow off the top-right corner. */
+.stats{display:flex; gap:0; border-radius:var(--r-2xl); padding:18px 6px; color:#fff;
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(206,62,0,.40) 0%, rgba(206,62,0,0) 50%),
+    linear-gradient(150deg, var(--navy-600) 0%, var(--navy-700) 60%, var(--navy-900) 100%);
+  box-shadow:var(--sh-lg)}
+.stat{flex:1; text-align:center; position:relative}
+.stat + .stat::before{content:""; position:absolute; left:0; top:12%; height:76%;
+  width:1px; background:rgba(255,255,255,.14)}
+.stat .v{display:block; font-size:24px; font-weight:700; line-height:28px;
+  letter-spacing:-.01em; color:var(--orange-200); font-variant-numeric:tabular-nums}
+.stat .k{display:block; font-size:10px; font-weight:300; line-height:13px; margin-top:3px;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--sky-300)}
+
+.prog{height:4px; background:var(--divider); border-radius:var(--r-pill);
+  overflow:hidden; margin-top:12px}
+.prog i{display:block; height:100%; border-radius:var(--r-pill); background:var(--accent);
+  box-shadow:var(--glow); transition:width var(--dur-slow) var(--ease)}
+
+/* On the setup screen both cards are navy in dark mode, so they need a gap or
+   they read as one shape. */
+.stats + .setup{margin-top:14px}
+
+/* ---- setup ---- */
+.setup{background:var(--card); border-radius:var(--r-2xl); padding:28px 24px;
+  margin-bottom:16px; box-shadow:var(--sh-md)}
+.setup h2{margin:0 0 20px; font-size:28px; line-height:36px; font-weight:600; letter-spacing:-.01em}
+.setup p{margin:0 0 22px; font-size:14px; line-height:20px; color:var(--fg-muted)}
+.setup label{display:block; font-size:10px; font-weight:600; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--fg-subtle); margin-bottom:8px}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.setup label{margin-top:18px}
+.setup .row2 label,.setup > label:first-of-type{margin-top:0}
+.setup .row2 + label{margin-top:18px}
+.setup select{width:100%; appearance:none; font:inherit; font-size:16px; color:var(--fg);
+  background-color:var(--bg); border:1px solid var(--ink-300); border-radius:var(--r-md);
+  padding:14px 42px 14px 14px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--fg-subtle) 50%),
+    linear-gradient(135deg,var(--fg-subtle) 50%,transparent 50%);
+  background-position:calc(100% - 21px) 51%, calc(100% - 15px) 51%;
+  background-size:6px 6px,6px 6px; background-repeat:no-repeat;
+  transition:border-color var(--dur-fast) var(--ease)}
+.setup select:focus-visible{outline:none; border-color:var(--accent)}
+/* A refusal shown in place, so the picker stays on screen and the user can
+   just change one field. */
+.warn{margin-top:18px; padding:14px 16px; border-radius:var(--r-md);
+  background:var(--orange-50); border-left:3px solid var(--danger);
+  font-size:13px; line-height:19px; color:var(--fg-muted)}
+.warn b{display:block; color:var(--fg); margin-bottom:3px}
+.warn .zs{display:block; margin-top:7px; font-size:10px; line-height:13px;
+  font-weight:300; font-style:italic; color:var(--fg-subtle)}
+.go[disabled]{opacity:.4; box-shadow:none; cursor:default}
+.go{width:100%; margin-top:20px; height:52px; border-radius:var(--r-md);
+  background:var(--accent); color:#fff; font-size:15px; font-weight:500;
+  box-shadow:var(--glow); transition:background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease)}
+.go:hover{background:var(--accent-hover)}
+.go:active{transform:scale(.985)}
+
+/* ---- steps ---- */
+.list{padding:24vh 0}
+ol.steps{list-style:none; margin:0; padding:0}
+li.step{display:flex; gap:14px; align-items:flex-start; padding:16px;
+  border-radius:var(--r-xl); margin-bottom:6px; background:transparent; box-shadow:none;
+  opacity:.16; transform:scale(.97); transform-origin:left center;
+  transition:opacity var(--dur-slow) var(--ease-io), transform var(--dur-slow) var(--ease-io),
+             background-color var(--dur-slow) var(--ease-io), box-shadow var(--dur-slow) var(--ease-io)}
+li.step.n2{opacity:.32}
+li.step.n1{opacity:.6}
+li.step.done{opacity:.26}
+li.step.on{opacity:1; transform:scale(1); background:var(--card); box-shadow:var(--sh-md)}
+
+.disc{flex:0 0 auto; width:44px; height:44px; border-radius:var(--r-pill); position:relative;
+  display:grid; place-items:center; color:var(--tint);
+  background:color-mix(in srgb, var(--tint) 14%, transparent);
+  transition:transform var(--dur-slow) cubic-bezier(.34,1.4,.5,1)}
+li.step.on .disc{transform:scale(1.05)}
+.disc svg{width:23px; height:23px; display:block}
+.badge{position:absolute; right:-3px; bottom:-3px; width:20px; height:20px;
+  border-radius:var(--r-pill); background:var(--bg); display:grid; place-items:center;
+  box-shadow:0 0 0 2px var(--bg)}
+li.step.on .badge{background:var(--bg); box-shadow:0 0 0 2px var(--card)}
+.badge svg{width:12px; height:12px; color:var(--fg-muted)}
+
+.body{flex:1; min-width:0; padding-top:3px}
+/* These are spans inside a flex item, so they need blockifying or the distance
+   and the note run on inline after the instruction. */
+.txt,.meta,.note{display:block}
+.txt{font-size:16px; line-height:22px; transition:font-size var(--dur-slow) var(--ease-io),
+  line-height var(--dur-slow) var(--ease-io)}
+li.step.on .txt{font-size:22px; line-height:29px; font-weight:500; letter-spacing:-.01em}
+li.step.on .txt b{font-weight:600; color:var(--accent)}
+.meta{margin-top:6px; font-size:12px; line-height:16px; color:var(--fg-subtle);
+  font-variant-numeric:tabular-nums}
+.note{margin-top:7px; font-size:10px; line-height:13px; font-weight:300; font-style:italic;
+  color:var(--fg-muted)}
+
+/* ---- controls ---- */
+.ctrl{position:sticky; bottom:0; z-index:5; padding:16px 0 22px; display:flex; gap:10px;
+  background:linear-gradient(to top, var(--bg) 64%, transparent)}
+.nav-btn{flex:1; height:52px; border-radius:var(--r-md); font-size:15px; font-weight:500;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  background:var(--card); color:var(--fg); box-shadow:inset 0 0 0 1px var(--ink-300);
+  transition:background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease)}
+.nav-btn:active{transform:scale(.985)}
+.nav-btn[disabled]{opacity:.35; cursor:default; transform:none}
+.nav-btn.primary{background:var(--accent); color:#fff; box-shadow:var(--glow)}
+.nav-btn.primary:hover{background:var(--accent-hover)}
+.nav-btn svg{width:16px; height:16px}
+
+/* ---- refusals ---- */
+.blocked{background:var(--card); border-radius:var(--r-2xl); padding:28px 24px;
+  box-shadow:var(--sh-md); border-top:3px solid var(--danger)}
+.blocked .big{font-size:22px; line-height:29px; font-weight:600; letter-spacing:-.01em;
+  margin-bottom:8px}
+.blocked .sm{font-size:14px; line-height:20px; color:var(--fg-muted)}
+.blocked .zs{margin-top:12px; font-size:10px; line-height:13px; font-weight:300;
+  font-style:italic; color:var(--fg-subtle)}
+</style>
+
+<div class="shell">
+  <div class="top">
+    <a class="back-link" id="back" href="index.html">&#8249; Map</a>
+    <span class="route-ttl" id="ttl"></span>
+  </div>
+  <div id="view"></div>
+</div>

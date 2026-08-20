@@ -11,3 +11,4 @@ venv/
 # Generated. data/raw_features.json IS committed so the repo builds offline.
 web/venue_web.json
 web/index.html
+web/navigate.html

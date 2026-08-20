@@ -33,6 +33,7 @@ python3 -m venv .venv && .venv/bin/pip install pytest   # only pytest is needed
 python3 scripts/build.py            # build both terminals, print a zone report
 python3 scripts/export_web.py       # write web/venue_web.json
 python3 scripts/build_web.py        # assemble the single-file demo web/index.html
+python3 scripts/build_nav.py        # assemble the turn-by-turn view web/navigate.html
 ```
 
 The engine is **pure standard-library Python**. `pytest` is the only dependency,
@@ -55,9 +56,14 @@ works offline. You only need a network and `WOOSMAP_KEY` to re-fetch
 | `scripts/build.py` | Fetch + build + zone report + policy smoke checks |
 | `scripts/export_web.py` | Export a compact JSON bundle for the browser |
 | `scripts/build_web.py` | Assemble `web/index.html` (self-contained, no server) |
+| `scripts/build_nav.py` | Assemble `web/navigate.html` (self-contained, no server) |
 | `web/01-core.js` | JS port: graph, Dijkstra, zone policy |
 | `web/02-narrate.js` | JS port: landmark narration |
-| `web/03-ui.js` | Terminal tabs, search, floor plan |
+| `web/03-ui.js` | Map demo: terminal tabs, journey mode, search, floor plan |
+| `web/navigate.head.html` | Turn-by-turn shell + Scapia Design System tokens |
+| `web/lexend-deca-latin.woff2` | Brand typeface, inlined into `navigate.html` at build |
+| `web/04-facing.js` | Turn-by-turn: orientation from a landmark, category icons |
+| `web/05-nav.js` | Turn-by-turn: focused step list, back/next |
 | `tests/test_policy.py` | Zone-policy regressions — the safety-critical ones |
 | `docs/` | Architecture, data, status, roadmap, decisions |
 
@@ -92,6 +98,10 @@ works offline. You only need a network and `WOOSMAP_KEY` to re-fetch
    and `web/02-narrate.js`). If you change instruction logic in one, change it in
    the other, or the demo and the engine will disagree. Unifying them is a
    candidate task — see `docs/ROADMAP.md`.
+   One deliberate exception: `web/04-facing.js` rewrites the *opening* step only,
+   when the user has told the browser which landmark they can see. The engine has
+   no such input, so there is nothing to mirror in Python. Every other step comes
+   from the shared narrator untouched.
 4. **Do not soften the honest limitations** in `docs/STATUS.md`. Zone inference
    is a heuristic on sparse data. When you fix one, update the doc; do not delete
    a limitation that still exists.

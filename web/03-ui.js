@@ -1,8 +1,23 @@
 /* ---------- UI ---------- */
 const SITES={}; for(const k in V.sites) SITES[k]=new Site(V.sites[k]);
 const SITE_IDS=Object.keys(SITES).sort();
-let siteId=SITE_IDS.includes('T2')?'T2':SITE_IDS[0];
+let siteId=SITE_IDS.includes(new URLSearchParams(location.search).get('t'))
+  ? new URLSearchParams(location.search).get('t')
+  : (SITE_IDS.includes('T2')?'T2':SITE_IDS[0]);
 let S=SITES[siteId], cur={from:null,to:null}, activeLevel=null, last=null;
+
+/* Journey mode. A departing passenger and an arriving one move through
+   disjoint parts of the terminal; `public` (forecourt, taxi rank) is the one
+   zone both of them legitimately use, so it appears in each. */
+const MODES={
+  departure:{label:'Departure', zones:['public','landside-dep','airside-dep']},
+  arrival:  {label:'Arrival',   zones:['arrivals','public']}
+};
+const Q=new URLSearchParams(location.search);
+let mode=MODES[Q.get('m')]?Q.get('m'):'departure';
+const modeZones=()=>MODES[mode].zones;
+const inMode=p=>modeZones().includes(p.z);
+const modePois=()=>S.pois.filter(inMode);
 const KIND=k=>(k||'place').replace(/_/g,' ');
 const zoneName=z=>(ZONE[z]||{}).name||'Unzoned';
 
@@ -12,37 +27,56 @@ for(const id of SITE_IDS){
   b.className='term'; b.textContent=SITES[id].name;
   b.setAttribute('aria-pressed', String(id===siteId));
   b.addEventListener('click',()=>{
-    siteId=id; S=SITES[id]; cur={from:null,to:null}; last=null; activeLevel=null;
-    fromI.value=''; toI.value='';
+    siteId=id; S=SITES[id];
     for(const el of termBox.children) el.setAttribute('aria-pressed', String(el.textContent===SITES[id].name));
-    buildChips(); render(); drawLevels([]); drawMap();
+    applyMode();
   });
   termBox.appendChild(b);
 }
 
 function combo(id,key){
   const inp=document.getElementById(id), menu=document.getElementById(id+'-menu');
+  const other = key==='from' ? 'to' : 'from';
   let items=[], sel=-1;
+
+  /* Grey out anything the zone policy would refuse against whatever is already
+     chosen on the other side. walkable() is component-based, so this stays
+     cheap enough to redo on every keystroke. */
+  const verdict=p=>{
+    const o=cur[other]; if(!o) return {ok:true};
+    return key==='from' ? S.walkable(p,o) : S.walkable(o,p);
+  };
   const render_=q=>{
     const s=q.trim().toLowerCase();
-    const pool=[...S.pois].sort((a,b)=>(b.s-a.s)||a.n.localeCompare(b.n));
-    items=(s?pool.filter(p=>p.n.toLowerCase().includes(s)):pool).slice(0,60);
-    menu.innerHTML= items.length ? items.map((p,i)=>
-      `<div class="opt${i===sel?' sel':''}" data-i="${i}"><span class="nm">${esc(p.n)}</span>
+    const pool=modePois().sort((a,b)=>(b.s-a.s)||a.n.localeCompare(b.n));
+    items=(s?pool.filter(p=>p.n.toLowerCase().includes(s)):pool).slice(0,60)
+            .map(p=>({p, w:verdict(p)}));
+    menu.innerHTML= items.length ? items.map(({p,w},i)=>
+      `<div class="opt${i===sel?' sel':''}${w.ok?'':' off'}" data-i="${i}"
+        ${w.ok?'':`aria-disabled="true" title="${esc(w.why)} from ${esc(cur[other].n)}"`}>
+       <span class="nm">${esc(p.n)}</span>
        <span class="kd">${esc(KIND(p.k))}</span>
-       <span class="zpill z-${esc(p.z||'none')}">${esc((ZONE[p.z]||{}).short||'—')}</span>
+       ${w.ok?`<span class="zpill z-${esc(p.z||'none')}">${esc((ZONE[p.z]||{}).short||'—')}</span>`
+             :`<span class="nowalk">${esc(w.why)}</span>`}
        <span class="lv">L${esc(p.l)}</span></div>`).join('')
       : '<div class="opt"><span class="nm" style="color:var(--muted)">Nothing matches that.</span></div>';
     menu.classList.add('on');
   };
-  const pick=i=>{ if(!items[i])return; cur[key]=items[i]; inp.value=items[i].n; menu.classList.remove('on'); render(); };
+  const pick=i=>{ const it=items[i]; if(!it||!it.w.ok) return;
+    cur[key]=it.p; inp.value=it.p.n; menu.classList.remove('on'); render(); };
+  /* Arrow keys land only on options that can actually be chosen. */
+  const move=d=>{
+    for(let i=sel+d; i>=0 && i<items.length; i+=d) if(items[i].w.ok) return i;
+    return sel;
+  };
   inp.addEventListener('input',()=>{sel=-1; render_(inp.value);});
-  inp.addEventListener('focus',()=>render_(inp.value));
+  inp.addEventListener('focus',()=>{sel=-1; render_(inp.value);});
   inp.addEventListener('keydown',e=>{
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();
-      sel=Math.max(0,Math.min(items.length-1,sel+(e.key==='ArrowDown'?1:-1))); render_(inp.value);
+      sel=move(e.key==='ArrowDown'?1:-1); render_(inp.value);
       menu.querySelector('.sel')?.scrollIntoView({block:'nearest'});
-    } else if(e.key==='Enter'){e.preventDefault(); pick(sel<0?0:sel);}
+    } else if(e.key==='Enter'){e.preventDefault();
+      pick(sel<0 ? items.findIndex(x=>x.w.ok) : sel);}
     else if(e.key==='Escape') menu.classList.remove('on');
   });
   menu.addEventListener('mousedown',e=>{const o=e.target.closest('.opt'); if(o){e.preventDefault(); pick(+o.dataset.i);}});
@@ -55,23 +89,50 @@ document.getElementById('swap').addEventListener('click',()=>{
   fromI.value=cur.from?cur.from.n:''; toI.value=cur.to?cur.to.n:''; render();
 });
 
-const find=n=>S.pois.find(p=>p.n===n);
+const find=n=>modePois().find(p=>p.n===n);
 function buildChips(){
   const box=document.getElementById('chips');
   box.innerHTML='<span class="cl">Try</span>';
-  const want = siteId==='T2'
-    ? [['Domestic Security','KFC'],['CheckIn A1 to A15','Gate C1'],['Belt 1','Gate C1'],['Belt 1','Belt 4']]
-    : [['Domestic Security','Gate 1'],['Belt 1','Gate 1']];
-  for(const [a,b] of want){
+  for(const [a,b] of (CHIPS[siteId]||{})[mode]||[]){
     const A=find(a),Z=find(b); if(!A||!Z) continue;
     const btn=document.createElement('button');
-    btn.className='chip'; btn.textContent=`${a} → ${b}`;
+    btn.className='chip'; btn.textContent=`${a} \u2192 ${b}`;
     btn.addEventListener('click',()=>{cur.from=A; cur.to=Z; fromI.value=a; toI.value=b; render();});
     box.appendChild(btn);
   }
 }
 
+/* Suggested journeys per terminal and mode. Any pair naming a POI this
+   terminal does not have is skipped, so a missing name degrades to one
+   fewer chip rather than a broken button. */
+const CHIPS={
+  T2:{departure:[['Subway','CheckIn E1 to E15'],['CheckIn A1 to A15','Gate C1'],['Domestic Security','KFC']],
+      arrival:  [['Belt 1','Belt 4'],['Belt 5','Exit Gate 4'],['Belt 3','Care by BLR']]},
+  T1:{departure:[['Checkin Counters','Gate 1'],['Domestic Security','Gate 1'],['Self Baggage Drop','Gate 12']],
+      arrival:  [['Belt 1','Belt 4'],['Belt 3','Lost and Found'],['Belt 2','Arrival Hall Infodesk']]}
+};
+
+/* Where a mode is not fully modelled for a terminal, say so rather than
+   letting the user discover it as a dead end. */
+function modeNote(){
+  const box=document.getElementById('modenote');
+  const pois=modePois();
+  const hasExit=(S.portals||[]).some(pt=>pt.frm==='arrivals'&&(pt.cand||[]).length);
+  let msg='';
+  if(!pois.length){
+    msg=`<b>No ${MODES[mode].label.toLowerCase()} places mapped in ${S.name}.</b> Try the other terminal.`;
+  } else if(mode==='arrival'&&!hasExit){
+    msg=`<b>${S.name} arrivals is baggage reclaim only.</b> The published map has no `+
+        `modelled exit from reclaim to the forecourt here, so routes stop at the belts.`;
+  }
+  box.innerHTML=msg;
+}
+
+
 function render(){
+  try{ renderRoute(); } finally { syncNav(); }
+}
+function renderRoute(){
   const out=document.getElementById('out'), sum=document.getElementById('sum');
   if(!cur.from||!cur.to){ out.innerHTML='<div class="empty">Pick where you are and where you are going.</div>'; sum.innerHTML=''; last=null; drawMap(); return; }
   if(cur.from.n===cur.to.n){ out.innerHTML='<div class="empty">You are already there.</div>'; sum.innerHTML=''; last=null; drawMap(); return; }
@@ -97,6 +158,33 @@ function render(){
     </li>`).join('')+'</ol>';
   activeLevel=r.levels[0]; drawLevels(r.levels); drawMap(); drawZones();
 }
+
+/* Hand the current selection to the turn-by-turn view. Hidden whenever there
+   is nothing walkable to hand over. */
+function navUrl(){
+  return 'navigate.html?'+new URLSearchParams({t:siteId, m:mode, from:cur.from.n, to:cur.to.n});
+}
+function syncNav(){
+  const ok=cur.from&&cur.to&&last&&!last.blocked;
+  document.getElementById('navrow').hidden=!ok;
+  if(ok) document.getElementById('startnav').href=navUrl();
+}
+/* A phone-shaped window, so the turn-by-turn view can be demoed at the size it
+   was designed for without leaving the map. */
+document.getElementById('mobilebtn').addEventListener('click',()=>{
+  /* Always available: the mobile view has its own picker, so it does not need
+     a route to have been chosen here. */
+  const q=new URLSearchParams({t:siteId, m:mode});
+  if(cur.from&&cur.to&&last&&!last.blocked){ q.set('from',cur.from.n); q.set('to',cur.to.n); }
+  const url='navigate.html?'+q;
+  const w=402, h=874;
+  /* availLeft/availTop are absent in some engines; without the guard the whole
+     expression is NaN and the window opens at the default position. */
+  const x=(screen.availLeft||0)+screen.availWidth-w-40, y=(screen.availTop||0)+40;
+  const win=window.open(url,'blr-phone',
+    `width=${w},height=${h},left=${x},top=${y},menubar=no,toolbar=no,location=no,status=no`);
+  if(win) win.focus(); else location.href=url;   /* popup blocked: just go */
+});
 
 function drawZones(){
   const box=document.getElementById('zonebar');
@@ -162,7 +250,20 @@ function drawMap(){
   svg.innerHTML=s;
 }
 
-buildChips();
-const A0=find('Domestic Security'), Z0=find('KFC');
-if(A0&&Z0){cur.from=A0; cur.to=Z0; fromI.value=A0.n; toI.value=Z0.n;}
-render();
+function applyMode(){
+  cur={from:null,to:null}; last=null; activeLevel=null;
+  fromI.value=''; toI.value='';
+  buildChips(); modeNote(); seed(); render(); drawLevels([]); drawMap();
+}
+document.getElementById('mode').value=mode;
+document.getElementById('mode').addEventListener('change',e=>{ mode=e.target.value; applyMode(); });
+
+/* Open on a journey that exercises the mode, not just the first two POIs. */
+function seed(){
+  const pick=(CHIPS[siteId]||{})[mode]||[];
+  for(const [a,b] of pick){
+    const A=find(a),Z=find(b);
+    if(A&&Z){ cur.from=A; cur.to=Z; fromI.value=a; toI.value=b; return; }
+  }
+}
+applyMode();

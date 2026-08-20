@@ -125,6 +125,22 @@ check-in → domestic gate route it selected **International Security** because 
 was nearest. Correct behaviour requires knowing the passenger's flight, which is not
 present in this data and cannot be derived from it.
 
+### Zone crossings are single-hop only
+
+`plan()` looks for one portal directly joining the start zone to the end zone. It
+never chains two. Terminal 2 declares `public → landside-dep` and
+`landside-dep → airside-dep`, so forecourt to gate is a legal journey through two
+control points — but the router refuses it, and does so with the wrong reason:
+*"not connected for passengers. You would have to leave and re-enter the terminal."*
+
+The refusal is conservative, so nobody is told to walk somewhere illegal. It is
+still wrong, and it is wide: from a forecourt POI in Terminal 2, roughly two thirds
+of departure destinations are refused. The search list now greys these out, which
+makes the gap easy to see. Fixing it means a shortest-path search over the portal
+graph rather than a single lookup, in both `indoor/route.py` and `web/01-core.js`,
+plus a `tests/test_policy.py` case pinning forecourt → gate as legal and
+gate → forecourt as still refused.
+
 ### Terminal 1 arrivals is a dead end
 
 No exit-gate POIs are mapped in Terminal 1, so the `arrivals → public` portal has
