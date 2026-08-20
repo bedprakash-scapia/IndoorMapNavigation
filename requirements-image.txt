@@ -2,3 +2,5 @@ pillow>=10
 numpy>=1.24
 scipy>=1.10
 scikit-image>=0.22
+anthropic>=0.40
+pydantic>=2

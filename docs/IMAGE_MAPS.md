@@ -29,9 +29,11 @@ brands, so almost every instruction can name something you can see.
    Connected components of "not dark, not white" give the polygons.
 4. **Categories.** The legend printed on the sheet is read row by row, giving a
    colour to category lookup with nothing hard-coded.
-5. **Names.** Transcribed once per floor into `venues/<venue>/names_<sheet>.json`.
-   `imagemaps/crop_sheets.py` renders one outlined crop per unit to make that
-   mechanical rather than a guess.
+5. **Names.** `imagemaps/autoname.py` reads them with Claude vision, one
+   outlined crop per unit, into `venues/<venue>/names_<sheet>.json`. Classic OCR
+   is a poor fit - the labels are small, often rotated 90 degrees, and stylised -
+   but a vision model reads them without difficulty. `imagemaps/crop_sheets.py`
+   renders the same crops as contact sheets for reviewing the result by eye.
 6. **Floors.** Sheets are extracted separately and merged by
    `imagemaps/build_multi.py`, joined at escalator shafts.
 
@@ -39,8 +41,20 @@ brands, so almost every instruction can name something you can see.
 
 ```bash
 pip install -r requirements-image.txt          # this source needs numpy/scipy/skimage
+export MALL_IMAGES=/path/to/sheets             # source images are not committed
+
 python3 -m imagemaps.extract 4.png mall_4.json # one sheet
+python3 -m imagemaps.autoname venues/mall/mall_4.json --out venues/mall/names_4.json
 python3 -m imagemaps.build_multi               # merge floors, using floors.json
+```
+
+Naming needs `ANTHROPIC_API_KEY`. Roughly seven requests per floor (twelve crops
+each); on `claude-opus-5` that is cents per floor. To find out how far to trust
+it, score a run against names you checked by hand:
+
+```bash
+python3 -m imagemaps.autoname venues/mall/mall_4.json --compare venues/mall/names_4.json
+python3 -m imagemaps.autoname venues/mall/mall_4.json --out /tmp/n.json --limit 12  # cheap dry run
 ```
 
 ## Things that cost real debugging time
@@ -77,8 +91,11 @@ consistent (one atrium differs by 275 px). Shafts are therefore linked by
 
 - **Scale is assumed.** `BUILDING_WIDTH_M` in `imagemaps/categories.py` sets it.
   Every distance scales off that one guess.
-- **Names are manual.** A vision pass reads them accurately, including rotated
-  labels, but the loop that binds each name to its polygon is not built.
+- **Names are model-read, and worth reviewing.** `autoname.py --compare` scores a
+  fresh run against names you already trust; do that on a floor you have checked
+  before trusting it on one you have not. A wrong name is worse than a blank one -
+  these become the landmarks in the directions - so the prompt is told to return
+  null rather than guess, and low-confidence answers are flagged.
 - **Landmarks repeat on winding routes** - about 0.6 mentions per route, worst
   case 9, where a path doubles back through an area whose shops are all named.
 - **Small units merge** where the dividing line is thin; roughly 73 of ~80 shops
