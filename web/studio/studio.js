@@ -63,7 +63,7 @@ async function take(files) {
     $('pb').style.width = '100%';
     const id = 'F' + (S.floors.length + 1);
     S.floors.push({ id, name: floorName(S.floors.length), order: S.floors.length,
-                    src: url, size: res.size, scale: res.scale,
+                    src: url, img, size: res.size, scale: res.scale,
                     nodes: res.nodes, edges: res.edges,
                     units: res.units.map((u, i) => ({ ...u, i, name: null,
                       cat: CATEGORIES[Math.min(u.cat, CATEGORIES.length-1)] || 'Other' })),
@@ -89,6 +89,14 @@ function sideName() {
       &mdash; the walkways, the shapes, the categories &mdash; is already read from the image.</p>
     <div class="prog"><i style="width:${f.units.length ? 100*named/f.units.length : 0}%"></i></div>
     <div class="stat">${named} of ${f.units.length} named</div>
+    ${S.api && S.api.naming ? `<button class="btn" id="auto" ${named === f.units.length ? 'disabled' : ''}
+        style="margin-top:10px">Auto-name the remaining ${f.units.length - named}</button>
+      <div class="stat" id="automsg"></div>` : ''}
+    ${S.autoDone ? `<div class="flagnote">Read ${S.autoDone.named}.
+       ${S.autoDone.flagged ? `<b>${S.autoDone.flagged} marked uncertain</b> - check those first;
+         on the floors measured so far, six of seven uncertain reads were wrong.`
+        : 'None marked uncertain.'}
+       ${S.autoDone.failed ? `${S.autoDone.failed} could not be read.` : ''}</div>` : ''}
     <label for="nminput">Selected shop</label>
     <input type="text" id="nminput" placeholder="${S.sel == null ? 'Pick a shop first' : 'Type a name, press Enter'}"
       ${S.sel == null ? 'disabled' : ''} value="${esc(S.sel != null ? (f.units[S.sel].name || '') : '')}">
@@ -107,6 +115,7 @@ function sideName() {
     <div class="nrow ${S.sel === u.i ? 'sel' : ''}" data-i="${u.i}">
       <span class="sw" style="background:rgb(${u.rgb.map(Math.round).join(',')})"></span>
       <span class="nm ${u.name ? '' : 'un'}">${esc(u.name || 'unnamed')}</span>
+      ${u.unsure ? '<span class="warn" title="the model was unsure - worth checking">check</span>' : ''}
       <span class="px">${esc(u.cat.split(',')[0])}</span></div>`).join('');
   nl.onclick = e => { const r = e.target.closest('.nrow'); if (!r) return; select(+r.dataset.i); };
   nl.querySelector('.nrow.sel')?.scrollIntoView({ block: 'nearest' });
@@ -114,6 +123,7 @@ function sideName() {
   if (S.sel != null) setTimeout(() => inp.focus(), 30);
   inp.onkeydown = e => { if (e.key === 'Enter') saveName(); };
   $('save').onclick = saveName;
+  if ($('auto')) $('auto').onclick = autoName;
   $('skip').onclick = () => { const nx = f.units.find(u => u.name == null && u.i !== S.sel); select(nx ? nx.i : null); };
   $('back2').onclick = () => { S.step = 1; paint(); };
   $('next2').onclick = () => { S.step = S.floors.length > 1 ? 3 : 4; paint(); };
@@ -124,8 +134,85 @@ function saveName() {
   if (S.sel == null || !inp) return;
   const v = inp.value.trim();
   f.units[S.sel].name = v || null;
+  f.units[S.sel].unsure = false; f.units[S.sel].auto = false;
   const nx = f.units.find(u => u.name == null && u.i !== S.sel);
   S.sel = nx ? nx.i : null;
+  paint();
+}
+
+/* ---------------- auto-naming ---------------- */
+/* The crop must show the unit outlined. A crop always contains neighbouring
+   shops, and without the outline there is no way to say which one is meant -
+   that ambiguity produced wrong answers when these crops were first reviewed by
+   eye. The outline is traced from the label map, so it is exact. */
+function cropOf(f, u) {
+  const k = 1 / f.scale;                        // working px -> sheet px
+  const [x0, y0, x1, y1] = u.bbox;
+  const pad = Math.max(14, (x1 - x0) / 6, (y1 - y0) / 6);
+  const sx = Math.max(0, Math.floor((x0 - pad) * k)), sy = Math.max(0, Math.floor((y0 - pad) * k));
+  const sw = Math.min(f.size[0] - sx, Math.ceil((x1 - x0 + 2 * pad) * k));
+  const sh = Math.min(f.size[1] - sy, Math.ceil((y1 - y0 + 2 * pad) * k));
+  const MAX = 420, s = Math.min(1, MAX / Math.max(sw, sh));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(sw * s)); c.height = Math.max(1, Math.round(sh * s));
+  const g = c.getContext('2d');
+  g.drawImage(f.img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+
+  // Marking the unit by outlining it swamps a narrow shop - a few pixels of line
+  // either side and the label underneath is gone, which is why most crops came
+  // back unreadable. Dim everything that is NOT the unit instead: the target is
+  // then the only bright thing in the picture and nothing is ever covered up.
+  const id = c.getContext('2d').getImageData(0, 0, c.width, c.height);
+  const d = id.data;
+  for (let cy = 0; cy < c.height; cy++) {
+    const wy = Math.round((cy / s + sy) * f.scale);
+    for (let cx = 0; cx < c.width; cx++) {
+      const wx = Math.round((cx / s + sx) * f.scale);
+      const inside = wx >= 0 && wy >= 0 && wx < f.lw && wy < f.lh
+                     && f.lab[wy * f.lw + wx] === u.labId;
+      if (inside) continue;
+      const i = (cy * c.width + cx) * 4;
+      d[i] = d[i] * 0.30; d[i+1] = d[i+1] * 0.30; d[i+2] = d[i+2] * 0.34;
+    }
+  }
+  g.putImageData(id, 0, 0);
+  return c.toDataURL('image/png').split(',')[1];
+}
+
+async function autoName() {
+  const f = FL(S.shown);
+  const todo = f.units.filter(u => !u.name);
+  if (!todo.length) return;
+  const btn = $('auto'); const set = m => { const e = $('automsg'); if (e) e.textContent = m; };
+  if (btn) { btn.disabled = true; btn.textContent = 'Reading the labels...'; }
+  const B = (S.api && S.api.batch_max) || 12;
+  let done = 0, flagged = 0, failed = 0;
+  for (let i = 0; i < todo.length; i += B) {
+    const batch = todo.slice(i, i + B);
+    try {
+      const r = await fetch('/api/name', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: batch.map(u => ({ id: u.i, b64: cropOf(f, u) })) })
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || r.status);
+      for (const u of batch) {
+        const got = j.names[u.i] || j.names[String(u.i)];
+        if (!got || !got.name) continue;
+        u.name = got.name; u.auto = true; u.unsure = !got.confident;
+        if (u.unsure) flagged++;
+      }
+    } catch (e) {
+      failed += batch.length;
+      set('Stopped: ' + String(e.message || e).slice(0, 90));
+      break;
+    }
+    done += batch.length;
+    set(`read ${Math.min(done, todo.length)} of ${todo.length}...`);
+    paint();
+    if (btn && $('auto')) { $('auto').disabled = true; $('auto').textContent = 'Reading the labels...'; }
+  }
+  S.autoDone = { named: f.units.filter(u => u.name).length, flagged, failed };
   paint();
 }
 
@@ -530,6 +617,16 @@ function placeEsc(f, pt) {
 }
 
 /* ---------------- shell ---------------- */
+/* Ask the server whether it can name at all. Served as a bare file, or from the
+   published artifact where the CSP blocks outbound calls, this simply fails and
+   the button never appears - naming stays manual, which is the honest fallback. */
+async function probe() {
+  try {
+    const r = await fetch('/api/status');
+    if (r.ok) S.api = await r.json();
+  } catch (e) { S.api = null; }
+  paint();
+}
 function paint() {
   for (const b of document.querySelectorAll('#rail b')) {
     const n = +b.dataset.step;
@@ -543,3 +640,4 @@ function paint() {
   drawTabs(); drawPlan();
 }
 paint();
+probe();

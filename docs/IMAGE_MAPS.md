@@ -58,6 +58,26 @@ python3 -m imagemaps.autoname venues/mall/mall_4.json --compare venues/mall/name
 python3 -m imagemaps.autoname venues/mall/mall_4.json --out /tmp/n.json --limit 12  # cheap dry run
 ```
 
+The browser studio can do the same thing, through a proxy that keeps the key
+server-side:
+
+```bash
+python3 scripts/build_studio.py
+python3 scripts/serve_studio.py        # http://127.0.0.1:8080
+```
+
+Upload a sheet, then **Auto-name the remaining N**. Without a key the server
+still serves the page and the button simply never appears - naming stays manual.
+Served as a bare file, or from the published artifact where the CSP blocks
+outbound calls, the same fallback applies.
+
+**Marking the unit in a crop: dim, do not outline.** The model has to be told
+which shop in the crop it is being asked about, since neighbours are always
+visible. Outlining swamps a narrow tenancy - a few pixels of line either side and
+the label underneath is gone - and that produced crops the model could not read
+at all: 7 of 62 named on the first attempt. Dimming everything that is *not* the
+unit fixed it to 59 of 62, and never covers the label.
+
 ## Things that cost real debugging time
 
 **A centre of mass falls outside an L-shaped unit.** It lands in the void, which
