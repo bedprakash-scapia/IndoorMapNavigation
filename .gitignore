@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Secrets — the Woosmap key must never be committed (see docs/DATA.md)
+.env
+
+# Generated. data/raw_features.json IS committed so the repo builds offline.
+web/venue_web.json
+web/index.html
