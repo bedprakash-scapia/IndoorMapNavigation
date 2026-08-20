@@ -91,7 +91,11 @@ function sideName() {
     <div class="stat">${named} of ${f.units.length} named</div>
     ${S.api && S.api.naming ? `<button class="btn" id="auto" ${named === f.units.length ? 'disabled' : ''}
         style="margin-top:10px">Auto-name the remaining ${f.units.length - named}</button>
-      <div class="stat" id="automsg"></div>` : ''}
+      <div class="stat" id="automsg"></div>`
+      : `<div class="flagnote">Names are typed in here. Reading them off the sheet
+         automatically needs a model, and this page cannot call one &mdash; it runs
+         entirely in your browser with no network access. Run it from the repo with
+         <code>scripts/serve_studio.py</code> for that.</div>`}
     ${S.autoDone ? `<div class="flagnote">Read ${S.autoDone.named}.
        ${S.autoDone.flagged ? `<b>${S.autoDone.flagged} marked uncertain</b> - check those first;
          on the floors measured so far, six of seven uncertain reads were wrong.`
