@@ -151,6 +151,32 @@ class Navigator:
                     'from_zone': za, 'to_zone': zb}
         return {'ok': True, 'legs': [(origin, best, p), (best, dest, None)], 'zones': [za, zb]}
 
+    def reachable(self, origin, dest):
+        """Can a traveller at `origin` get to `dest`? Answers without running a
+        search, so a UI can mark every candidate on each keystroke.
+
+        Within one site a path exists iff the walk components match, so this is
+        component arithmetic plus the zone policy. Returns (ok, why) where why is
+        None, 'zone' (the venue's rule forbids it) or 'gap' (our map has no route).
+        Must stay in agreement with plan(); tests enforce that.
+        """
+        if origin.get('node') is None or dest.get('node') is None:
+            return False, 'gap'
+        same = self.g.comp.get(origin['node']) == self.g.comp.get(dest['node'])
+        za, zb = origin.get('zone'), dest.get('zone')
+        if za is None or zb is None or za == zb:
+            return (True, None) if same else (False, 'gap')
+        p = self.cfg.portal_between(za, zb)
+        if not p:
+            return False, 'zone'
+        if not same:
+            return False, 'gap'
+        comps = {self.g.comp.get(c['node']) for c in self.z.portals_for(p, self.pois)
+                 if c.get('node') is not None}
+        if self.g.comp.get(origin['node']) not in comps:
+            return False, 'gap'
+        return True, None
+
     # ---- narration ----
     def directions(self, origin, dest):
         if origin['node'] is None or dest['node'] is None:

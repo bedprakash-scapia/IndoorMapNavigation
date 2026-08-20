@@ -53,6 +53,28 @@ class Site{
     for(const p of this.pois) if(p.s>0) (this.lm[p.l] ||= []).push(p);
     this.portalPoi = new Set();
     for(const pt of this.portals) for(const i of pt.cand) this.portalPoi.add(i);
+    // Which walk components actually contain a usable control point for each
+    // crossing. Lets us answer "can I get there?" without running a search.
+    this.portalComps = this.portals.map(pt =>
+      new Set(pt.cand.map(i=>this.comp[this.pois[i].v]).filter(c=>c>=0)));
+  }
+
+  /* Can a traveller at `o` reach `d`? Cheap enough to run over every POI on
+     each keystroke: within one graph a path exists iff the components match,
+     so this needs no search. Must stay in agreement with plan(). */
+  reach(o,d){
+    if(!o||!d||o===d) return {ok:true};
+    const sameComp = this.comp[o.v]>=0 && this.comp[o.v]===this.comp[d.v];
+    const za=o.z, zb=d.z;
+    if(!za||!zb||za===zb) return sameComp?{ok:true}:{ok:false, why:'gap'};
+    const pi=this.portals.findIndex(p=>p.frm===za&&p.to===zb);
+    if(pi<0){
+      const back=this.portals.some(p=>p.frm===zb&&p.to===za);
+      return {ok:false, why:'zone', oneway:back};
+    }
+    if(!sameComp) return {ok:false, why:'gap'};
+    if(!this.portalComps[pi].has(this.comp[o.v])) return {ok:false, why:'gap'};
+    return {ok:true};
   }
   X(i){return this.nodes[i][0]} Y(i){return this.nodes[i][1]}
   xy(i){return [this.nodes[i][0],this.nodes[i][1]]} lvl(i){return this.nodes[i][2]}

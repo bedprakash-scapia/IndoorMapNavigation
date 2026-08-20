@@ -93,6 +93,20 @@ button{font:inherit; cursor:pointer; border-radius:var(--r)}
 .zpill.z-arrivals{background:var(--stop-soft); color:var(--stop)}
 .opt .lv{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted); flex:none}
 
+/* unreachable-from-here markers */
+.mk{width:15px; height:15px; flex:none; align-self:center; display:block}
+.mk-zone{color:var(--stop)}
+.mk-gap{color:var(--muted)}
+.opt.unreach{cursor:help}
+.opt.unreach .nm{color:var(--muted)}
+.opt.unreach .zpill{opacity:.6}
+.opt.unreach:hover,.opt.unreach.sel{background:var(--stop-soft)}
+.mhint{display:flex; align-items:center; gap:5px; padding:8px 12px; font-size:12.5px;
+  color:var(--ink-2); background:var(--panel-2); border-bottom:1px solid var(--line);
+  position:sticky; top:0; z-index:1}
+.mhint b{font-weight:600; color:var(--ink)}
+.mhint .mk{width:13px; height:13px}
+
 .chips{display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; align-items:center}
 .chips .cl{font-family:"Barlow Condensed",sans-serif; font-weight:600; font-size:12px;
   letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}

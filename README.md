@@ -42,7 +42,7 @@ between them, so a cross-terminal route cannot be constructed at all.
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install pytest
-.venv/bin/python -m pytest tests/ -q      # 11 tests, no network needed
+.venv/bin/python -m pytest tests/ -q      # 13 tests, no network needed
 
 python3 scripts/build.py                  # zone report + policy checks
 python3 scripts/export_web.py             # data bundle for the browser

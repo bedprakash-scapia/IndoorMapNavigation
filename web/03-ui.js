@@ -6,6 +6,27 @@ let S=SITES[siteId], cur={from:null,to:null}, activeLevel=null, last=null;
 const KIND=k=>(k||'place').replace(/_/g,' ');
 const zoneName=z=>(ZONE[z]||{}).name||'Unzoned';
 
+/* Two distinct reasons a place cannot be reached, and they mean different
+   things to a traveller: a zone block is the airport's rule, a gap is our map
+   being incomplete. They get different icons so they are not confused. */
+const MARK={
+  zone:'<svg class="mk mk-zone" viewBox="0 0 24 24" aria-hidden="true">'
+      +'<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/>'
+      +'<path d="M6.4 17.6l11.2-11.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  gap:'<svg class="mk mk-gap" viewBox="0 0 24 24" aria-hidden="true">'
+     +'<path d="M9.5 7H7a5 5 0 0 0 0 10h2.5M14.5 7H17a5 5 0 0 1 0 10h-2.5" fill="none" '
+     +'stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+     +'<path d="M9.8 12h4.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.5 3.2"/></svg>'
+};
+function whyText(r, from, to){
+  if(r.why==='zone')
+    return r.oneway
+      ? `${to.n} is in ${zoneName(to.z)}. You cannot get back there from `
+        + `${zoneName(from.z)} — that crossing only works the other way.`
+      : `${zoneName(from.z)} and ${zoneName(to.z)} are not connected for passengers.`;
+  return `No walking route from ${from.n} to ${to.n} is mapped in this data.`;
+}
+
 const termBox=document.getElementById('terms');
 for(const id of SITE_IDS){
   const b=document.createElement('button');
@@ -26,12 +47,38 @@ function combo(id,key){
   const render_=q=>{
     const s=q.trim().toLowerCase();
     const pool=[...S.pois].sort((a,b)=>(b.s-a.s)||a.n.localeCompare(b.n));
-    items=(s?pool.filter(p=>p.n.toLowerCase().includes(s)):pool).slice(0,60);
-    menu.innerHTML= items.length ? items.map((p,i)=>
-      `<div class="opt${i===sel?' sel':''}" data-i="${i}"><span class="nm">${esc(p.n)}</span>
+    // Mark anything you cannot get to from the other end of the journey, so the
+    // dead end shows up while typing instead of after choosing.
+    const anchor = key==='to' ? cur.from : cur.to;
+    const bad = p => {
+      if(!anchor || anchor===p) return null;
+      const r = key==='to' ? S.reach(anchor,p) : S.reach(p,anchor);
+      return r.ok ? null : r;
+    };
+    let matches = s?pool.filter(p=>p.n.toLowerCase().includes(s)):pool;
+    if(anchor){
+      // Stable partition: somewhere you can actually go should never be pushed
+      // below somewhere you cannot. Unreachable places stay listed, just after.
+      matches = matches.filter(p=>!bad(p)).concat(matches.filter(p=>bad(p)));
+    }
+    items = matches.slice(0,60);
+    let blocked=0;
+    const rows = items.map((p,i)=>{
+      const b=bad(p); if(b) blocked++;
+      const [from,to] = key==='to' ? [anchor,p] : [p,anchor];
+      return `<div class="opt${b?' unreach':''}${i===sel?' sel':''}" data-i="${i}"`
+        + (b?` title="${esc(whyText(b,from,to))}"`:'') + `>`
+        + (b?MARK[b.why]:'')
+        + `<span class="nm">${esc(p.n)}</span>
        <span class="kd">${esc(KIND(p.k))}</span>
        <span class="zpill z-${esc(p.z||'none')}">${esc((ZONE[p.z]||{}).short||'—')}</span>
-       <span class="lv">L${esc(p.l)}</span></div>`).join('')
+       <span class="lv">L${esc(p.l)}</span></div>`;
+    }).join('');
+    const hint = blocked
+      ? `<div class="mhint">${MARK.zone}${MARK.gap} ${blocked} of ${items.length} cannot be reached `
+        + `${key==='to'?'from':'to'} <b>${esc(anchor.n)}</b> — hover to see why.</div>`
+      : '';
+    menu.innerHTML = items.length ? hint + rows
       : '<div class="opt"><span class="nm" style="color:var(--muted)">Nothing matches that.</span></div>';
     menu.classList.add('on');
   };
