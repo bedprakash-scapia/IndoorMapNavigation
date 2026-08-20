@@ -98,6 +98,23 @@ Terminal 2 zone distribution:
 
 ---
 
+### Reachability shown while typing (2026-08-21)
+
+The search picker marks every candidate you cannot reach from the other end of
+the journey, so a dead end is visible before you choose it rather than after.
+Two distinct markers, because they mean different things to a traveller:
+
+| Marker | Meaning |
+|---|---|
+| Red no-entry | The venue's rules forbid it (wrong zone, or a one-way control point) |
+| Grey broken link | No walking route exists in our map data |
+
+Reachable places sort above unreachable ones; nothing is hidden. The prediction
+is component arithmetic plus the zone policy rather than a search, so it is
+cheap enough to run on each keystroke, and
+`test_reachable_agrees_with_directions` asserts it never disagrees with the
+router.
+
 ## Known limitations
 
 These are real and some of them are safety-relevant. Do not present this system as

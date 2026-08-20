@@ -28,7 +28,7 @@ Two things make this more than a shortest-path demo:
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install pytest   # only pytest is needed
-.venv/bin/python -m pytest tests/ -q                    # 11 tests, no network
+.venv/bin/python -m pytest tests/ -q                    # 13 tests, no network
 
 python3 scripts/build.py            # build both terminals, print a zone report
 python3 scripts/export_web.py       # write web/venue_web.json
@@ -88,14 +88,20 @@ works offline. You only need a network and `WOOSMAP_KEY` to re-fetch
    passenger journeys. Telling someone to walk from arrivals into a departure
    gate is a real-world failure, not a cosmetic bug. Run the tests before you
    push, and if you change zoning, add a case rather than relaxing one.
-3. **The Python and JS narrators are duplicate implementations** (`indoor/route.py`
+3. **Reachability is predicted, not searched.** `Navigator.reachable()` (and
+   `Site.reach()` in the browser) answers "can I get there?" by component
+   arithmetic plus the zone policy, so the picker can mark every candidate on
+   each keystroke. It **must** agree with `plan()`/`directions()` — a wrong
+   marker is worse than no marker, and `test_reachable_agrees_with_directions`
+   enforces it. If you change zoning or portals, keep both in step.
+4. **The Python and JS narrators are duplicate implementations** (`indoor/route.py`
    and `web/02-narrate.js`). If you change instruction logic in one, change it in
    the other, or the demo and the engine will disagree. Unifying them is a
    candidate task — see `docs/ROADMAP.md`.
-4. **Do not soften the honest limitations** in `docs/STATUS.md`. Zone inference
+5. **Do not soften the honest limitations** in `docs/STATUS.md`. Zone inference
    is a heuristic on sparse data. When you fix one, update the doc; do not delete
    a limitation that still exists.
-5. **Prefer fixing data quality over special-casing.** Most bad instructions
+6. **Prefer fixing data quality over special-casing.** Most bad instructions
    trace back to the walk network or the POI tags, not to the narrator.
 
 ## Gotchas that already cost real debugging time
@@ -132,3 +138,8 @@ python3 scripts/build.py                 # zone counts should not swing wildly
 
 `scripts/build.py` prints a per-terminal zone report and runs five policy checks.
 Two of them must print `BLOCKED` — that is the system working, not failing.
+
+The same is true in the UI: the search picker marks unreachable places with an
+icon while you type — a red no-entry for "the venue's rules forbid this" and a
+grey broken-link for "our map has no route". Those markers appearing is the
+system working.

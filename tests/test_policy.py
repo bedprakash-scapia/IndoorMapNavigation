@@ -134,3 +134,37 @@ def test_building_polygons_are_not_pois(sites):
         for p in s['pois']:
             assert p['tags'].get('indoor') != 'level'
             assert not p['tags'].get('building:name')
+
+
+# ---------------------------------------------------------- reachability
+# The picker marks unreachable destinations while you type. That prediction is
+# made without running a search, so it must not disagree with what the router
+# would actually do — a wrong marker is worse than no marker.
+
+def test_reachable_agrees_with_directions(sites):
+    for sid, s in sites.items():
+        nav, pois = s['nav'], s['pois']
+        for i, o in enumerate(pois):
+            if i % 11:                      # strided sample keeps this quick
+                continue
+            for d in pois:
+                if o is d:
+                    continue
+                ok, _why = nav.reachable(o, d)
+                actual = 'error' not in nav.directions(o, d)
+                assert ok == actual, (
+                    f'{sid}: {o["name"]}[{o.get("zone")}] -> {d["name"]}[{d.get("zone")}] '
+                    f'predicted={ok} actual={actual}')
+
+
+def test_reachable_reasons_are_meaningful(sites):
+    nav = sites['T2']['nav']
+    find_ = lambda n: find(sites['T2'], n)
+    # arrivals -> departure gate is a venue rule, not a missing path
+    ok, why = nav.reachable(find_('Belt 1'), find_('Gate C1'))
+    assert (ok, why) == (False, 'zone')
+    # one-way through security is also a rule
+    ok, why = nav.reachable(find_('Gate C1'), find_('CheckIn A1 to A15'))
+    assert (ok, why) == (False, 'zone')
+    # and a legal journey is simply reachable
+    assert nav.reachable(find_('CheckIn A1 to A15'), find_('Gate C1')) == (True, None)
