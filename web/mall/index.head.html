@@ -1,0 +1,147 @@
+<title>Mall Wayfinder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+
+<style>
+:root{
+  --ground:#F2F0EC; --panel:#FFFFFF; --sunk:#E8E5DF;
+  --ink:#1C1A17; --ink-2:#4A463F; --muted:#7C766C;
+  --line:#DAD5CC; --hair:#EAE6DF;
+  --map-bg:#33322F; --map-walk:#4A4845; --map-line:#2A2926;
+  --route:#FF2D6F; --pin:#111014;
+  --shadow:0 1px 2px rgba(28,26,23,.05),0 10px 30px -14px rgba(28,26,23,.28);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#141311; --panel:#1D1C19; --sunk:#252320;
+    --ink:#F2EFE9; --ink-2:#C3BDB2; --muted:#8B857A;
+    --line:#332F2A; --hair:#2A2723;
+    --map-bg:#232220; --map-walk:#3A3835; --map-line:#1A1918;
+    --route:#FF4D85; --pin:#F2EFE9;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 30px -14px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#141311; --panel:#1D1C19; --sunk:#252320;
+  --ink:#F2EFE9; --ink-2:#C3BDB2; --muted:#8B857A;
+  --line:#332F2A; --hair:#2A2723;
+  --map-bg:#232220; --map-walk:#3A3835; --map-line:#1A1918;
+  --route:#FF4D85; --pin:#F2EFE9;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 30px -14px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:Outfit,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.mono{font-family:"DM Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+h1{margin:0;font-size:23px;font-weight:600;letter-spacing:-.015em}
+.wrap{max-width:1340px;margin:0 auto;padding:20px 20px 60px}
+
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+header .sub{color:var(--muted);font-size:14.5px}
+.badge{margin-left:auto;font-family:"DM Mono",monospace;font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);border:1px solid var(--line);
+  padding:5px 10px;border-radius:100px}
+
+.grid{display:grid;grid-template-columns:405px 1fr;gap:18px;align-items:start}
+@media(max-width:940px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+
+.pick{padding:16px}
+.field{position:relative;margin-bottom:10px}
+.field:last-of-type{margin-bottom:0}
+label{display:block;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;margin-bottom:5px}
+input[type=text]{width:100%;font:inherit;font-size:15.5px;color:var(--ink);background:var(--sunk);
+  border:1px solid transparent;border-radius:9px;padding:11px 12px}
+input[type=text]:focus{outline:none;border-color:var(--route);background:var(--panel)}
+.menu{position:absolute;z-index:20;left:0;right:0;top:100%;margin-top:6px;background:var(--panel);
+  border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);
+  max-height:300px;overflow-y:auto;display:none}
+.menu.on{display:block}
+.opt{display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer}
+.opt+.opt{border-top:1px solid var(--hair)}
+.opt:hover,.opt.sel{background:var(--sunk)}
+.dot{width:10px;height:10px;border-radius:3px;flex:none}
+.opt .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+.opt .ct{font-size:11px;color:var(--muted);white-space:nowrap}
+.swapbtn{display:block;margin:8px auto 0;background:var(--sunk);border:1px solid var(--line);
+  color:var(--ink-2);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:15px}
+.swapbtn:hover{color:var(--route);border-color:var(--route)}
+.chips{display:flex;gap:7px;flex-wrap:wrap;padding:0 16px 16px}
+.chip{background:transparent;border:1px solid var(--line);color:var(--ink-2);
+  padding:6px 11px;font:inherit;font-size:13px;border-radius:100px;cursor:pointer}
+.chip:hover{border-color:var(--route);color:var(--route)}
+
+.sum{display:flex;gap:22px;padding:14px 16px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+.sum div{display:flex;flex-direction:column}
+.sum .k{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.sum .v{font-family:"DM Mono",monospace;font-size:17px}
+ol{list-style:none;margin:0;padding:0}
+li{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:start;padding:12px 16px}
+li+li{border-top:1px solid var(--hair)}
+.ic{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:var(--sunk);color:var(--ink-2)}
+.ic svg{width:15px;height:15px}
+li.t-start .ic,li.t-end .ic{background:var(--pin);color:var(--panel)}
+.tx{font-size:15px;padding-top:2px}
+.tx b{font-weight:600;color:var(--route)}
+.dist{font-family:"DM Mono",monospace;font-size:11.5px;color:var(--muted);padding-top:5px;white-space:nowrap}
+.empty{padding:30px 16px;color:var(--muted);text-align:center;font-size:15px}
+
+.mapcard{padding:10px;overflow:hidden}
+svg.plan{display:block;width:100%;height:auto;border-radius:8px;background:var(--map-bg)}
+.unit{cursor:pointer}
+.unit:hover{filter:brightness(1.25)}
+.tabs{display:flex;gap:6px;padding:4px 4px 10px}
+.tab{background:transparent;border:1px solid var(--line);color:var(--ink-2);font:inherit;
+  font-size:13px;padding:6px 14px;border-radius:100px;cursor:pointer}
+.tab[aria-pressed="true"]{background:var(--route);border-color:var(--route);color:#fff}
+li.t-esc{background:var(--sunk)}
+li.t-esc .ic{background:var(--route);color:#fff}
+.legend{display:flex;flex-wrap:wrap;gap:5px 12px;padding:12px 8px 4px;font-size:11.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.note{margin-top:16px;font-size:13.5px;color:var(--muted);line-height:1.55}
+.note b{color:var(--ink-2);font-weight:600}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Mall Wayfinder</h1>
+    <span class="sub">Directions built from a picture of the floor plan</span>
+    <span class="badge">3 floors &middot; trial</span>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <div class="pick">
+          <div class="field">
+            <label for="from">Where you are</label>
+            <input type="text" id="from" autocomplete="off" placeholder="Search a shop&hellip;">
+            <div class="menu" id="from-menu"></div>
+          </div>
+          <button class="swapbtn" id="swap" aria-label="Swap">&#8645;</button>
+          <div class="field">
+            <label for="to">Where you want to go</label>
+            <input type="text" id="to" autocomplete="off" placeholder="Search a shop&hellip;">
+            <div class="menu" id="to-menu"></div>
+          </div>
+        </div>
+        <div class="chips" id="chips"></div>
+        <div id="sum"></div>
+        <div id="out"><div class="empty">Pick two shops, or tap them on the plan.</div></div>
+      </div>
+      <p class="note"><b>How this was made.</b> Nothing here was typed in by hand except the shop
+      names. The dark concourse was lifted out of the image, thinned to its centre line, and turned
+      into a graph of 2,523 points across three floors. Every shop is a colour region whose category comes from the legend printed on the
+      sheet. The three floors are joined at seven escalator shafts, matched by atrium name. Distances are approximate &mdash; a drawing has no scale, so one is assumed.</p>
+    </div>
+
+    <div class="card mapcard">
+      <div class="tabs" id="tabs"></div>
+      <svg class="plan" id="plan" viewBox="0 0 2000 1422" role="img" aria-label="Mall floor plan"></svg>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+</div>
