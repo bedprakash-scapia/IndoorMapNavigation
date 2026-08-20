@@ -57,6 +57,15 @@ class Site{
   X(i){return this.nodes[i][0]} Y(i){return this.nodes[i][1]}
   xy(i){return [this.nodes[i][0],this.nodes[i][1]]} lvl(i){return this.nodes[i][2]}
 
+  /* Same answer as `shortest(a,b) !== null`, but free: the constructor already
+     flood-filled every walk component. Nodes with no edges keep comp -1 and can
+     reach nothing. */
+  reaches(a,b){
+    if(a===b) return true;
+    const ca=this.comp[a];
+    return ca!==-1 && ca===this.comp[b];
+  }
+
   shortest(a,b){
     const N=this.nodes.length, D=new Float64Array(N).fill(Infinity),
           P=new Int32Array(N).fill(-1), K=new Int32Array(N).fill(0), done=new Uint8Array(N);
@@ -116,7 +125,7 @@ class Site{
   }
 
   /* ---- zone policy: what sequence of zones is legal? ---- */
-  plan(o,d){
+  plan(o,d,fast){
     const za=o.z, zb=d.z;
     if(!za||!zb||za===zb) return {ok:true, legs:[[o,d,null]], zones:[za||zb]};
     const fwd=this.portals.find(p=>p.frm===za&&p.to===zb);
@@ -131,6 +140,7 @@ class Site{
     let best=null,bd=Infinity;
     for(const i of fwd.cand){
       const c=this.pois[i]; if(c==null) continue;
+      if(fast){ if(this.reaches(o.v,c.v)&&this.reaches(c.v,d.v)){best=c; break;} continue; }
       const r1=this.shortest(o.v,c.v), r2=this.shortest(c.v,d.v);
       if(!r1||!r2) continue;
       if(r1.m+r2.m<bd){bd=r1.m+r2.m; best=c;}
@@ -138,5 +148,18 @@ class Site{
     if(!best) return {ok:false, zones:[za,zb],
       reason:'The control point between these areas is not reachable in this map data.'};
     return {ok:true, legs:[[o,best,fwd],[best,d,null]], zones:[za,zb]};
+  }
+
+  /* Would directions(o,d) come back blocked? Answered without routing, so the
+     search list can grey out what it cannot offer. `why` is a chip label; the
+     full sentence still comes from plan()/directions() when the user commits. */
+  walkable(o,d){
+    /* Identity, not name: the data holds several distinct POIs called "Smoor",
+       and two of them need not be walkable to each other. */
+    if(o===d) return {ok:true};
+    const p=this.plan(o,d,true);
+    if(!p.ok) return {ok:false, why:/other direction/.test(p.reason||'') ? 'One-way' : 'Not walkable'};
+    for(const [a,b] of p.legs) if(!this.reaches(a.v,b.v)) return {ok:false, why:'No path'};
+    return {ok:true};
   }
 }

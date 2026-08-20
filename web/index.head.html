@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BLR Airport Wayfinder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -162,6 +164,50 @@ li.is-portal .txt b{color:var(--stop)}
 .note + .note{margin-top:10px}
 /* No entrance animation on the step list: with a fill mode and a delay, any
    frame where the animation does not run leaves rows stuck at opacity 0. */
+.scope{max-width:1180px; margin:0 auto; padding:0 20px; display:flex; align-items:flex-end;
+  justify-content:space-between; gap:16px; flex-wrap:wrap}
+.scope .terms{margin:0; padding:12px 0 0}
+.scope-right{display:flex; align-items:center; gap:14px}
+.mobilebtn{display:flex; align-items:center; gap:7px; padding:6px 13px; border-radius:var(--r);
+  border:1px solid rgba(255,255,255,.34); background:rgba(0,0,0,.22); color:#fff;
+  font-size:13.5px; font-weight:600; margin-bottom:7px}
+.mobilebtn:hover{background:var(--gold-bright); border-color:var(--gold-bright); color:var(--ink)}
+.mobilebtn svg{width:14px; height:14px}
+.modewrap{display:flex; align-items:center; gap:8px; padding-bottom:7px}
+.modewrap span{font-family:"Barlow Condensed",sans-serif; font-weight:600; font-size:12px;
+  letter-spacing:.09em; text-transform:uppercase; color:#9FC9B8}
+.modewrap select{font-family:inherit; font-size:14px; font-weight:600; color:#fff;
+  background:rgba(0,0,0,.22); border:1px solid rgba(255,255,255,.34); border-radius:var(--r);
+  padding:5px 10px; cursor:pointer}
+.modewrap select:focus-visible{outline:2px solid var(--gold-bright); outline-offset:2px}
+.modewrap option{color:var(--ink); background:var(--panel)}
+.modenote{margin-top:12px; font-size:13.5px; color:var(--ink-2);
+  background:var(--gold-soft); border:1px solid var(--gold); border-radius:var(--r); padding:8px 12px}
+.modenote b{color:var(--ink); font-weight:600}
+.modenote:empty{display:none}
+a.startnav{display:flex; align-items:center; justify-content:center; gap:7px;
+  margin-top:18px; padding:13px; border-radius:var(--r); background:var(--green);
+  color:#fff; font-weight:600; font-size:15.5px; text-decoration:none}
+a.startnav:hover{background:var(--ink)}
+a.startnav[hidden]{display:none}
+a.startnav svg{width:16px; height:16px}
+/* An option the zone policy would refuse: visible, so the user learns the
+   airport has rules, but not selectable. */
+.opt.off{opacity:.42; cursor:not-allowed}
+.opt.off:hover{background:transparent}
+.opt.off .nm{text-decoration:line-through; text-decoration-thickness:1px;
+  text-decoration-color:var(--line)}
+.nowalk{font-family:"Barlow Condensed",sans-serif; font-weight:600; font-size:11px;
+  letter-spacing:.07em; text-transform:uppercase; color:var(--stop);
+  border:1px solid var(--stop); border-radius:999px; padding:1px 7px; white-space:nowrap}
+.navrow{display:flex; gap:8px; margin-top:18px}
+.navrow[hidden]{display:none}
+a.startnav{flex:1; margin-top:0}
+button.phoneview{border:1px solid var(--line); border-radius:var(--r); background:transparent;
+  color:var(--ink-2); font-weight:600; font-size:15.5px; padding:13px 16px;
+  display:flex; align-items:center; gap:7px; white-space:nowrap}
+button.phoneview:hover{border-color:var(--green); color:var(--green); background:var(--green-soft)}
+button.phoneview svg{width:15px; height:15px}
 </style>
 
 <div class="bar">
@@ -169,7 +215,21 @@ li.is-portal .txt b{color:var(--stop)}
     <h1>BLR Airport Wayfinder</h1>
     <span class="sub">Landmark directions that respect security zones</span>
   </div>
-  <div class="terms" id="terms"></div>
+  <div class="scope">
+    <div class="terms" id="terms"></div>
+    <div class="scope-right">
+    <button class="mobilebtn" id="mobilebtn" title="Open the turn-by-turn mobile view">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2.5" width="11"
+        height="19" rx="2.5"/><path d="M10.5 5.6h3"/></svg>Mobile view</button>
+    <label class="modewrap" for="mode"><span>Journey</span>
+      <select id="mode">
+        <option value="departure">Departure</option>
+        <option value="arrival">Arrival</option>
+      </select>
+    </label>
+    </div>
+  </div>
 </div>
 
 <div class="wrap">
@@ -188,6 +248,7 @@ li.is-portal .txt b{color:var(--stop)}
       </div>
     </div>
     <div class="chips" id="chips"><span class="cl">Try</span></div>
+    <div class="modenote" id="modenote"></div>
   </div>
 
   <div class="cols">
@@ -195,6 +256,11 @@ li.is-portal .txt b{color:var(--stop)}
       <h2>Directions</h2>
       <div id="sum"></div>
       <div id="out"><div class="empty">Pick where you are and where you are going.</div></div>
+      <div class="navrow" id="navrow" hidden>
+        <a class="startnav" id="startnav">Start navigation
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+            stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></a>
+      </div>
     </div>
     <div class="card">
       <h2>Floor plan</h2>
