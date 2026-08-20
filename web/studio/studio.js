@@ -84,7 +84,8 @@ function sideName() {
   const named = f.units.filter(u => u.name).length;
   $('side').innerHTML = `
     <h2>Name the shops on ${esc(f.name)}</h2>
-    <p class="hint">Tap a shop on the plan (or a row below) and type what it is. Everything else
+    <p class="hint">Pick a shop &mdash; tap it on the plan, or tap any row in the list below &mdash;
+      then type what it is. You never need the plan: the list alone is enough. Everything else
       &mdash; the walkways, the shapes, the categories &mdash; is already read from the image.</p>
     <div class="prog"><i style="width:${f.units.length ? 100*named/f.units.length : 0}%"></i></div>
     <div class="stat">${named} of ${f.units.length} named</div>
@@ -108,6 +109,7 @@ function sideName() {
       <span class="nm ${u.name ? '' : 'un'}">${esc(u.name || 'unnamed')}</span>
       <span class="px">${esc(u.cat.split(',')[0])}</span></div>`).join('');
   nl.onclick = e => { const r = e.target.closest('.nrow'); if (!r) return; select(+r.dataset.i); };
+  nl.querySelector('.nrow.sel')?.scrollIntoView({ block: 'nearest' });
   const inp = $('nminput');
   if (S.sel != null) setTimeout(() => inp.focus(), 30);
   inp.onkeydown = e => { if (e.key === 'Enter') saveName(); };

@@ -47,7 +47,12 @@ header .sub{color:var(--muted);font-size:14.5px}
 
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
 .grid{display:grid;grid-template-columns:400px 1fr;gap:18px;align-items:start}
-@media(max-width:980px){.grid{grid-template-columns:1fr}}
+@media(max-width:980px){
+  .grid{grid-template-columns:1fr}
+  /* Stacked, the plan would land below the panel - and step 2 says "tap a shop
+     on the plan", which reads as broken when the plan is off-screen. Put it first. */
+  .grid > .mapwrap{order:-1}
+}
 .pad{padding:16px}
 h2{margin:0 0 4px;font-size:16px;font-weight:600}
 .hint{color:var(--muted);font-size:13.5px;margin:0 0 12px}
@@ -77,7 +82,7 @@ label{display:block;font-size:11.5px;letter-spacing:.09em;text-transform:upperca
 .namelist{max-height:330px;overflow-y:auto;margin-top:10px;border-top:1px solid var(--hair)}
 .nrow{display:flex;align-items:center;gap:9px;padding:8px 2px;border-bottom:1px solid var(--hair);cursor:pointer;font-size:14.5px}
 .nrow:hover{background:var(--sunk)}
-.nrow.sel{background:var(--sunk)}
+.nrow.sel{background:var(--sunk);box-shadow:inset 3px 0 0 var(--route)}
 .nrow .sw{width:11px;height:11px;border-radius:3px;flex:none}
 .nrow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nrow .nm.un{color:var(--muted);font-style:italic}
