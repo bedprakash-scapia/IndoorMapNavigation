@@ -68,6 +68,12 @@ async function take(files) {
                     units: res.units.map((u, i) => ({ ...u, i, name: null,
                       cat: CATEGORIES[Math.min(u.cat, CATEGORIES.length-1)] || 'Other' })),
                     lab: res.lab, lw: res.lw, lh: res.lh, legend: res.legend, escs: [] });
+    const pre = presetFor(f.name, res.units.length);
+    if (pre) {
+      const fl = S.floors[S.floors.length - 1];
+      fl.name = pre.floor; fl.known = true;
+      for (const u of fl.units) if (pre.names[String(u.i)]) { u.name = pre.names[String(u.i)]; u.auto = true; }
+    }
     S.shown = id;
     $('pmsg').textContent = `${res.units.length} shops, ${res.nodes.length} walk points, `
       + `${Math.round((performance.now()-t0)/100)/10}s`;
@@ -92,6 +98,9 @@ function sideName() {
     ${S.api && S.api.naming ? `<button class="btn" id="auto" ${named === f.units.length ? 'disabled' : ''}
         style="margin-top:10px">Auto-name the remaining ${f.units.length - named}</button>
       <div class="stat" id="automsg"></div>`
+      : f.known ? `<div class="flagnote"><b>Recognised sheet.</b> These names were read off
+         this plan earlier and are cached in the page, so they load instantly. On a sheet
+         it has not seen, naming is typed in &mdash; this page has no network access.</div>`
       : `<div class="flagnote">Names are typed in here. Reading them off the sheet
          automatically needs a model, and this page cannot call one &mdash; it runs
          entirely in your browser with no network access. Run it from the repo with
@@ -142,6 +151,21 @@ function saveName() {
   const nx = f.units.find(u => u.name == null && u.i !== S.sel);
   S.sel = nx ? nx.i : null;
   paint();
+}
+
+/* ---------------- known sheets ---------------- */
+/* Names already read off these three sheets, carried by unit position from the
+   committed venue data. Keyed by file name AND unit count: if the extractor
+   ever changes and the count moves, the preset stops applying rather than
+   mislabelling every shop. This is a cache of a real read - it is not a
+   substitute for reading, and the banner says so. */
+const PRESETS = {"1.png":{"floor":"Second","names":{"0":"PVR","1":"Timezone","10":"Koskii","11":"Rajdhani","12":"Tasva","13":"Burger King","14":"Buffalo Wild Wings","16":"W","17":"Kushals","18":"Libas","19":"Dominos","2":"Play N Learn","20":"Twisting Scoops","21":"House of Candy","22":"Accessorize London","23":"Go Colors","24":"Mohanlal & Sons","25":"Baskin Robbins","26":"Rangriti","27":"Rangriti","28":"Allen Solly Girls","29":"Allen Solly Girls","3":"Cha","30":"Biba Girls","31":"Miniklub","32":"Biba","33":"Spa Nation","34":"Neerus","35":"Amukti","36":"Odette","37":"Odette","38":"Mustard","39":"Meena Bazaar","4":"Belleville","40":"Chique","41":"Adidas Kids","42":"UCB Kids","43":"Chicco","44":"Allen Solly Boys","45":"Tommy Hilfiger Kids","46":"Enamor","5":"Belleville","6":"Cafe Allora","7":"Food Court","8":"R&B","9":"Manyavar Mohey"},"units":47},"3.png":{"floor":"First","names":{"0":"PVR","10":"Zara Women","11":"Forest Essentials","12":"Kiehl's","13":"Aptronix","14":"Columbia","15":"Calvin Klein Underwear","16":"Bobbi Brown","17":"Starbucks","18":"US Polo","19":"Daniel Wellington","2":"Concert Lane Courtyard","20":"Forever New","21":"Gas","22":"Hidesign","23":"Guess","24":"Lacoste","25":"Selected","26":"Paul's","27":"Mango","28":"Da Milano","29":"Sancha Tea","30":"Daniel Wellington","31":"Tommy Hilfiger","32":"Superdry","33":"Aldo","34":"MAC","35":"Swarovski","36":"Concierge Desk","37":"Vero Moda","39":"Hunkemoller","4":"Fountain","40":"Shantanu & Nikhil","41":"Hunkemoller","42":"CocoArt","43":"Nautica","44":"Armani Exchange","45":"Calvin Klein","46":"Sephora","47":"Tissot","48":"Bath & Body Works","49":"Rado","5":"Kama Ayurveda","50":"Steve Madden","51":"Birkenstock","52":"Charles & Keith","53":"Swatch","54":"Parcos","6":"Marks & Spencers","7":"Casio","9":"Zara Men"},"units":55},"4.png":{"floor":"Ground","names":{"0":"Lifestyle","10":"PMJ Jewellers","11":"Solitario","12":"Om Book Shop","13":"Joyalukkas","14":"Mangatrai Neeraj","15":"Next","16":"Levi's","17":"Lego","18":"Kisna","19":"AND","2":"Sennes","20":"Global Desi","21":"Asus","22":"Malabar Gold","23":"Fastrack","24":"CeX","25":"Orra","26":"Zen Diamond","27":"Wacoal","28":"SWA Diamonds","29":"Krispy Kreme","3":"FabIndia","30":"HP World","31":"Cookie Man","32":"World of Titan","33":"Cafe Coffee Day","34":"Boba Tree & Reem","35":"Mia","36":"Bose","37":"Chai Point","38":"Hamley's","39":"Rayban & Oakley","4":"Senco Gold","40":"Concierge Desk","41":"Costa Coffee","42":"Play Salon","43":"V H Women","44":"Zivama","45":"Allen Solly Women","46":"CaratLane","47":"Lenovo","48":"BlueStone","49":"Helios","5":"Reliance Digital","50":"Foot Locker","51":"Gap","52":"Only","53":"Only","54":"Vero Moda","55":"Shaya","56":"Carpisa","57":"Helios","58":"With","59":"Show Off","6":"Max","60":"Tira","61":"Show Off","7":"B & G","8":"Solitario","9":"HomeCentre"},"units":62}};
+function presetFor(fileName, unitCount) {
+  const key = Object.keys(PRESETS).find(k =>
+    k.toLowerCase() === (fileName || '').toLowerCase().split('/').pop());
+  if (!key) return null;
+  const p = PRESETS[key];
+  return p.units === unitCount ? p : null;
 }
 
 /* ---------------- auto-naming ---------------- */
