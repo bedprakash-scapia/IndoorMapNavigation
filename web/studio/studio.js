@@ -252,8 +252,18 @@ function sideLink() {
     <p class="hint">Mark each escalator or lift, and give it the same name on every floor it
       reaches &mdash; that name is what joins the levels. Sheets are rarely aligned to each
       other, so matching by position is not safe.</p>
-    <button class="btn ${S.escMode ? '' : 'ghost'}" id="escmode">
-      ${S.escMode ? 'Tap the plan to place it' : 'Add an escalator on ' + esc(f.name)}</button>
+    ${S.pendingEsc ? `
+      <div class="flagnote"><b>Name this escalator.</b> Use the same name on every floor
+        it reaches &mdash; that is what joins the levels.</div>
+      <input type="text" id="escname" placeholder="for example: Atrium 2" value="">
+      ${shaftNames().length ? `<div class="chips2">${shaftNames().map(n =>
+        `<button class="chip2" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div>` : ''}
+      <div class="row">
+        <button class="btn ghost" id="esccancel">Cancel</button>
+        <button class="btn" id="escsave">Add it</button>
+      </div>`
+    : `<button class="btn ${S.escMode ? '' : 'ghost'}" id="escmode">
+        ${S.escMode ? 'Now tap the escalator on the plan' : 'Add an escalator on ' + esc(f.name)}</button>`}
     <div class="namelist" id="el"></div>
     <div class="row">
       <button class="btn ghost" id="back3">Back</button>
@@ -270,7 +280,16 @@ function sideLink() {
     const r = ev.target.closest('.nrow'); if (!r) return;
     const fl = FL(r.dataset.f); fl.escs = fl.escs.filter(e => e.key !== +r.dataset.k); paint();
   };
-  $('escmode').onclick = () => { S.escMode = !S.escMode; paint(); };
+  if ($('escmode')) $('escmode').onclick = () => { S.escMode = !S.escMode; paint(); };
+  if ($('escname')) {
+    const inp = $('escname');
+    setTimeout(() => inp.focus(), 30);
+    inp.onkeydown = e => { if (e.key === 'Enter') commitEsc(inp.value); };
+    $('escsave').onclick = () => commitEsc(inp.value);
+    $('esccancel').onclick = () => { S.pendingEsc = null; paint(); };
+    document.querySelectorAll('.chip2').forEach(b =>
+      b.onclick = () => commitEsc(b.dataset.n));
+  }
   $('back3').onclick = () => { S.step = 2; paint(); };
   $('next3').onclick = () => { S.step = 4; build(); paint(); };
 }
@@ -496,6 +515,7 @@ function sideNav() {
       <button class="btn ghost" id="back4">Back</button>
       <button class="btn ghost" id="exp">Export venue</button>
     </div>
+    <div class="stat" id="expmsg"></div>
     <div id="sum"></div>
     <div id="out"><div class="empty">Pick two shops.</div></div>`;
   combo('from'); combo('to');
@@ -557,9 +577,10 @@ async function exportVenue() {
       units: f.units.filter(u => u.name).map(u => ({ name: u.name, cat: u.cat, c: u.c, v: u.v })) }))
   };
   const json = JSON.stringify(data);
-  if (!dl) { alert('Download is not available in this view. The venue JSON was logged to the console instead.'); console.log(json); return; }
-  try { await dl.save({ filename: 'venue.json', data: json }); }
-  catch (e) { console.log('export declined or failed', e); }
+  const note = m => { const e = $('expmsg'); if (e) e.textContent = m; };
+  if (!dl) { console.log(json); return note('Saving a file is not available here. The venue JSON is in the browser console.'); }
+  try { await dl.save({ filename: 'venue.json', data: json }); note('Saved venue.json'); }
+  catch (e) { note('Export cancelled.'); }
 }
 
 /* ---------------- map ---------------- */
@@ -588,6 +609,11 @@ function drawPlan() {
   for (const e of f.escs)
     s += `<g><circle cx="${f.nodes[e.node][0]}" cy="${f.nodes[e.node][1]}" r="26" fill="none" stroke="var(--route)" stroke-width="8"/>
           <circle cx="${f.nodes[e.node][0]}" cy="${f.nodes[e.node][1]}" r="9" fill="var(--route)"/></g>`;
+  if (S.pendingEsc && S.step === 3) {
+    const p = f.nodes[S.pendingEsc.node];
+    s += `<circle cx="${p[0]}" cy="${p[1]}" r="30" fill="none" stroke="var(--route)"
+           stroke-width="8" stroke-dasharray="14 10"/>`;
+  }
   if (S.step === 4 && S.last && S.last.path) {
     let run = [];
     const flush = () => { if (run.length > 1) s += `<polyline points="${run.map(p => p.join(',')).join(' ')}" fill="none" stroke="var(--route)" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>`; run = []; };
@@ -616,7 +642,8 @@ function drawPlan() {
   };
   $('maphint').innerHTML = S.step === 2
     ? 'Green dots are named, pink are not. Tap one to name it.'
-    : S.step === 3 ? (S.escMode ? '<b>Tap the escalator on the plan.</b>' : 'Escalators are ringed.')
+    : S.step === 3 ? (S.pendingEsc ? '<b>Now give it a name on the left.</b>'
+        : S.escMode ? '<b>Tap the escalator on the plan.</b>' : 'Escalators are ringed.')
     : S.step === 4 ? 'Tap a shop to set start, then destination.' : '';
 }
 function svgPoint(svg, ev) {
@@ -634,14 +661,29 @@ function hit(f, pt) {
   }
   return f.units.find(u => u.labId === id) || null;
 }
+/* No prompt()/alert() anywhere: modal dialogs are blocked in the sandboxed
+   iframe the published artifact runs in. They return null instantly, so the tap
+   appeared to do nothing at all. Ask for the name inline instead. */
 function placeEsc(f, pt) {
   let bi = 0, bd = Infinity;
   f.nodes.forEach((n, i) => { const d = Math.hypot(n[0]-pt[0], n[1]-pt[1]); if (d < bd) { bd = d; bi = i; } });
-  const name = prompt('Name this escalator. Use the SAME name on every floor it reaches '
-                    + '(for example "Atrium 2") - that name is what joins the levels.');
-  if (!name) return;
-  f.escs.push({ key: Date.now(), name: name.trim(), node: bi });
-  S.escMode = false; paint();
+  S.pendingEsc = { node: bi, at: pt };
+  S.escMode = false;
+  paint();
+}
+function commitEsc(name) {
+  const f = FL(S.shown);
+  name = (name || '').trim();
+  if (!name || !S.pendingEsc) return;
+  f.escs.push({ key: Date.now() + Math.random(), name, node: S.pendingEsc.node });
+  S.pendingEsc = null; paint();
+}
+/* Names already used on any floor - reusing one is what links the levels, so
+   offer them as one tap rather than something to retype exactly. */
+function shaftNames() {
+  const s = new Set();
+  for (const fl of S.floors) for (const e of fl.escs) s.add(e.name);
+  return [...s];
 }
 
 /* ---------------- shell ---------------- */
