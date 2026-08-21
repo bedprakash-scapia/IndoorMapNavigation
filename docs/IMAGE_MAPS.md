@@ -108,6 +108,29 @@ but the same atrium sits ~110 px apart between levels, and the offset is not
 consistent (one atrium differs by 275 px). Shafts are therefore linked by
 **atrium name**, not by pixel position.
 
+## A photograph of a signboard
+
+`venues/del` is Delhi T3 Domestic Departures, built from one photo of the board
+by the gate rather than a vector export. It works, with one change and one
+concession.
+
+**The change: which pixels are walkable is a parameter, not a constant.** On the
+mall sheets the concourse is the dark fill. On this board it is a bright yellow
+and the shops are the coloured strips around it - exactly inverted.
+`imagemaps/extract_photo.py` swaps that test and everything downstream is
+unchanged. Despite glare, perspective skew and the surrounding scene, 99% of the
+yellow came out as a single blob, and both levels skeletonised to one connected
+component covering 100% of nodes.
+
+**The concession: shops are placed by hand.** Many tenancies on this board share
+one red, so colour components merge them into a single blob - the mall's trick of
+one flat colour per unit does not hold. The 51 places in `venues/del/build_del.py`
+are typed from the board. That is honest work, not a failure: a photographed sign
+is a harder input than a printed directory.
+
+Distances are indicative - the board is photographed at an angle, so the plans
+carry perspective skew on top of the usual missing scale.
+
 ## Known limits
 
 - **Scale is assumed.** `BUILDING_WIDTH_M` in `imagemaps/categories.py` sets it.

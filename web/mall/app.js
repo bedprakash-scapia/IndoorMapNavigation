@@ -298,13 +298,23 @@ function plan() {
   const f = FL(shown);
   if (f.size) svg.setAttribute('viewBox', `0 0 ${f.size[0]} ${f.size[1]}`);
   let s = '';
+  // A venue built from a photographed board carries no shop polygons; the sheet
+  // itself is the map. A vector venue has polygons and no image.
+  if (f.img) s += `<image href="${f.img}" x="0" y="0" width="${f.size[0]}" height="${f.size[1]}"/>`;
   for (const [a, b, , k] of D.edges) {
     if (k === 1 || LV(a) !== shown || LV(b) !== shown) continue;
     const A = P(a), Bb = P(b);
-    s += `<line x1="${A[0]}" y1="${A[1]}" x2="${Bb[0]}" y2="${Bb[1]}" stroke="var(--map-walk)" stroke-width="9" stroke-linecap="round"/>`;
+    s += `<line x1="${A[0]}" y1="${A[1]}" x2="${Bb[0]}" y2="${Bb[1]}" stroke="${f.img ? 'rgba(255,210,74,.85)' : 'var(--map-walk)'}" stroke-width="${f.img ? 5 : 9}" stroke-linecap="round"/>`;
   }
   for (const u of D.units) {
-    if (u.l !== shown || !u.poly || u.poly.length < 3) continue;
+    if (u.l !== shown) continue;
+    if (!u.poly || u.poly.length < 3) {          // photo venue: mark the place
+      const on = cur.from === u || cur.to === u;
+      s += `<circle class="unit" data-n="${esc(u.n)}" cx="${u.c[0]}" cy="${u.c[1]}"`
+         + ` r="${on ? 17 : 11}" fill="${PAL[u.cat] || '#888'}" stroke="#fff"`
+         + ` stroke-width="${on ? 5 : 3}"><title>${esc(u.n)}</title></circle>`;
+      continue;
+    }
     const on = cur.from === u || cur.to === u;
     s += `<polygon class="unit" data-n="${esc(u.n)}" points="${u.poly.map(p => p.join(',')).join(' ')}" `
        + `fill="${PAL[u.cat] || '#888'}" stroke="${on ? 'var(--route)' : 'var(--map-line)'}" `
